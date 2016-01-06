@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# 
+#
 # tournament.py -- implementation of a Swiss-system tournament
 #
 
@@ -14,31 +14,59 @@ def connect():
 def deleteMatches():
     """Remove all the match records from the database."""
 
+    c = connect()
+    cur = c.cursor()
+    cur.execute("DELETE FROM matches")
+    c.commit()
+    c.close()
+
 
 def deletePlayers():
     """Remove all the player records from the database."""
+
+    c = connect()
+    cur = c.cursor()
+    cur.execute("DELETE FROM players")
+    c.commit()
+    c.close()
 
 
 def countPlayers():
     """Returns the number of players currently registered."""
 
+    c = connect()
+    cur = c.cursor()
+    cur.execute("SELECT COUNT(*) as num FROM players")
+    result = cur.fetchone()[0]
+
+    c.close()
+
+    return result
+
 
 def registerPlayer(name):
     """Adds a player to the tournament database.
-  
+
     The database assigns a unique serial id number for the player.  (This
     should be handled by your SQL database schema, not in your Python code.)
-  
+
     Args:
       name: the player's full name (need not be unique).
     """
+    c = connect()
+    cur = c.cursor()
+    # The extra comma at the end is needed to force Python to treat (name) as
+    # a tuple
+    cur.execute("INSERT INTO players (name) VALUES (%s)", (name,))
+    c.commit()
+    c.close()
 
 
 def playerStandings():
     """Returns a list of the players and their win records, sorted by wins.
 
-    The first entry in the list should be the player in first place, or a player
-    tied for first place if there is currently a tie.
+    The first entry in the list should be the player in first place, or a
+    player tied for first place if there is currently a tie.
 
     Returns:
       A list of tuples, each of which contains (id, name, wins, matches):
@@ -47,6 +75,12 @@ def playerStandings():
         wins: the number of matches the player has won
         matches: the number of matches the player has played
     """
+    c = connect()
+    cur = c.cursor()
+    cur.execute("SELECT * FROM standings")
+    result = cur.fetchall()
+
+    return result
 
 
 def reportMatch(winner, loser):
@@ -56,16 +90,22 @@ def reportMatch(winner, loser):
       winner:  the id number of the player who won
       loser:  the id number of the player who lost
     """
- 
- 
+
+    c = connect()
+    cur = c.cursor()
+    query = "INSERT INTO matches (player1, player2, winner) VALUES (%s, %s, %s)"
+    cur.execute(query, (winner, loser, winner))
+    c.commit()
+    c.close()
+
 def swissPairings():
     """Returns a list of pairs of players for the next round of a match.
-  
+
     Assuming that there are an even number of players registered, each player
     appears exactly once in the pairings.  Each player is paired with another
     player with an equal or nearly-equal win record, that is, a player adjacent
     to him or her in the standings.
-  
+
     Returns:
       A list of tuples, each of which contains (id1, name1, id2, name2)
         id1: the first player's unique id
@@ -74,4 +114,10 @@ def swissPairings():
         name2: the second player's name
     """
 
+    c = connect()
+    cur = c.cursor()
+    cur.execute("SELECT * FROM swiss_pairings")
+    result = cur.fetchall()
+    c.close()
 
+    return result
