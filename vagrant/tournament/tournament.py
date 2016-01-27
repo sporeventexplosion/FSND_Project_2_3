@@ -93,10 +93,11 @@ def reportMatch(winner, loser):
 
     c = connect()
     cur = c.cursor()
-    query = "INSERT INTO matches (player1, player2, winner) VALUES (%s, %s, %s)"
-    cur.execute(query, (winner, loser, winner))
+    q = "INSERT INTO matches (player1, player2, winner) VALUES (%s, %s, %s)"
+    cur.execute(q, (winner, loser, winner))
     c.commit()
     c.close()
+
 
 def swissPairings():
     """Returns a list of pairs of players for the next round of a match.
