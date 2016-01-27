@@ -17,4 +17,4 @@ A simple system for recording results for a tournament using the Swisis system. 
 
 6. Once connected, execute `cd /vagrant/tournament` in the SSH terminal.
 
-7. Here, you can run `python` and import the tournament file for use, or you can run `python tournament_test.py` to validate that the functions in tournament.py are working probably.
+7. Here, you can run `python` and import the tournament file for use, or you can run `python tournament_test.py` to validate that the functions in tournament.py are working properly.
