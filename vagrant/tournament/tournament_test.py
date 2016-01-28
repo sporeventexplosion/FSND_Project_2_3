@@ -133,7 +133,8 @@ def testReportMatches():
             raise ValueError("Each match winner should have one win recorded.")
         elif i in (id2, id4) and w != 0:
 
-            raise ValueError("Each match loser should have zero wins recorded.")
+            raise ValueError(
+                    "Each match loser should have zero wins recorded.")
 
     t.close()
     print "8. After a match, players have updated standings."

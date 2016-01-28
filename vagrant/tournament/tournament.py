@@ -94,18 +94,17 @@ class Tournament():
 
         db = self.db
         cur = db.cursor()
-        q = "INSERT INTO matches (player1, player2, winner) VALUES (%s, %s, %s)"
+        q = "INSERT INTO matches (player1, player2, winner) VALUES (%s,%s,%s)"
         cur.execute(q, (winner, loser, winner))
         db.commit()
-
 
     def swissPairings(self):
         """Returns a list of pairs of players for the next round of a match.
 
-        Assuming that there are an even number of players registered, each player
-        appears exactly once in the pairings.  Each player is paired with another
-        player with an equal or nearly-equal win record, that is, a player adjacent
-        to him or her in the standings.
+        Assuming that there are an even number of players registered, each
+        player appears exactly once in the pairings.  Each player is paired
+        with another player with an equal or nearly-equal win record, that is,
+        a player adjacent to him or her in the standings.
 
         Returns:
           A list of tuples, each of which contains (id1, name1, id2, name2)
