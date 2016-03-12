@@ -73,9 +73,8 @@ GOOGLE_CLIENT_ID = read_json('google_client_secrets.json')['web']['client_id']
 FACEBOOK_APP_DATA = read_json('facebook_client_secrets.json')
 
 
-@app.route('/restaurants')
 @app.route('/')
-def restaurants():
+def index():
     return render_template('root.html')
 
 
@@ -256,7 +255,7 @@ def logout():
 
     else:
         flash('You were not logged in')
-    return redirect(url_for('restaurants'))
+    return redirect(url_for('index'))
 
 
 if __name__ == '__main__':
