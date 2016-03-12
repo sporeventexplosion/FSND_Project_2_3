@@ -1,0 +1,105 @@
+{% extends "root.html" %}
+
+{% block title %}Log in{% endblock %}
+
+{% block head_extras %}
+<script src="//apis.google.com/js/platform.js?onload=start" async defer></script>
+<script>
+    // Facebook login
+    (function(d, s, id) {
+    var js, fjs = d.getElementsByTagName(s)[0];
+        if (d.getElementById(id)) return;
+        js = d.createElement(s); js.id = id;
+        js.src = "https://connect.facebook.net/en_US/sdk.js";
+        fjs.parentNode.insertBefore(js, fjs);
+    }(document, 'script', 'facebook-jssdk'));
+
+    var fbAsyncInit = function(){
+        FB.init({
+            'appId': '{{facebook_app_id}}',
+            'cookie': true,
+            'xfbml': true,
+            'version': 'v2.5'
+        })
+    }
+
+    var facebook_login = function(){
+        var accessToken = FB.getAuthResponse().accessToken;
+        console.log(accessToken);
+        FB.api('/me', function(response){
+            $.ajax({
+                'type': 'POST',
+                'url': '/auth/fbconnect?state={{state}}',
+                'processData': false,
+                'data': accessToken,
+                'contentType': 'application/octet-stream; charset=utf-8',
+                'success': function(result){
+                    if (result){
+                        window.open('/', '_self');
+                    }
+                },
+                'error': function(result){
+                    alert('An error occured when attempting to log in');
+                    console.log(result.responseJSON);
+                }
+            });
+        });
+    };
+
+    // Google login
+    var google_login_callback = function(authResult){
+        if (authResult.code){
+            $('#google-signin-button').hide();
+
+            $.ajax({
+                'type': 'POST',
+                'url': '/auth/gconnect?state={{state}}',
+                'processData': false,
+                'data': authResult.code,
+                'contentType': 'application/octet-stream; charset=utf-8',
+                'success': function(result){
+                    if (result){
+                        window.open('/', '_self');
+                    } else if (authResult.error){
+                        console.log('An error occurred' + authResult.error);
+                    }
+                },
+                'error': function(result){
+                    alert('An error occured when attempting to log in');
+                    console.log(result.responseJSON);
+                }
+            });
+        }
+    };
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-xs-12">
+        <h1>Log in</h1>
+    </div>
+</div>
+<div class="row">
+    <div class="col-xs-12 col-sm-6">
+        Log in with Google
+        <div>
+            <span class="g-signin"
+                data-scope="openid email"
+                data-clientid="{{google_client_id}}"
+                data-redirecturi="postmessage"
+                data-accesstype="offline"
+                data-cookiepolicy="single_host_origin"
+                data-callback="google_login_callback">
+        </div>
+    </div>
+    <div class="col-xs-12 col-sm-6">
+        Log in with Facebook
+        <div>
+            <fb:login-button scope="public_profile,email" onlogin="facebook_login();">
+                <a href="javascript:facebook_login()">Sign in</a>
+            </fb:login-button>
+        </div>
+    </div>
+</div>
+{% endblock %}
