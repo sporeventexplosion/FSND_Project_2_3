@@ -72,16 +72,11 @@ def create_user(email, name, picture):
 GOOGLE_CLIENT_ID = read_json('google_client_secrets.json')['web']['client_id']
 FACEBOOK_APP_DATA = read_json('facebook_client_secrets.json')
 
+
 @app.route('/restaurants')
 @app.route('/')
 def restaurants():
     return render_template('root.html')
-
-
-# For debugging only
-@app.route('/session_viewer')
-def view_sessions():
-    return get_json_response(cookie_session.items())
 
 
 @app.route('/login')
@@ -196,9 +191,6 @@ def facebook_login():
     url = ('https://graph.facebook.com/v2.5/me/picture?%s&redirect=0'
            '&height=200&width=200') % token
     data = json.loads(http_request(url)[1])
-    print '\n\n\n\n\n'
-    print data
-    print '\n\n\n\n\n'
 
     picture = data['data']['url']
 
