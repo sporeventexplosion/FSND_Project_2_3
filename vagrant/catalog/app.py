@@ -1,11 +1,11 @@
 from flask import (Flask, request, make_response, render_template, flash, g,
-                   url_for, redirect)
+                   url_for, redirect, jsonify, abort, g)
 from flask import session as cookie_session
 
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.client import FlowExchangeError
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, desc
 from sqlalchemy.orm import sessionmaker
 
 import requests
@@ -13,6 +13,8 @@ import httplib2
 import random
 import string
 import json
+
+from time import time
 
 from database_setup import Base, User, Category, Item
 
@@ -29,6 +31,10 @@ def get_json_response(content, status=200):
     response = make_response(json.dumps(content), status)
     response.headers['Content-Type'] = 'application/json'
     return response
+
+
+def int_time_now():
+    return int(time.time())
 
 
 # A function that "packages" errors into a dictionary for easier client
@@ -73,9 +79,190 @@ GOOGLE_CLIENT_ID = read_json('google_client_secrets.json')['web']['client_id']
 FACEBOOK_APP_DATA = read_json('facebook_client_secrets.json')
 
 
+# Simplify repetitive tasks
+@app.before_request
+def before_request():
+    g.logged_in = cookie_session.get('email') != None
+    g.user_id = cookie_session.get('user_id')
+
+
+@app.route('/category/')
 @app.route('/')
 def index():
-    return render_template('root.html')
+    categories = session.query(Category).order_by(desc(Category.id)).all()
+    latest_items = session.query(Item).order_by(desc(Item.id)).limit(10).all()
+    return render_template('categories.html', categories=categories,
+                           items=latest_items)
+
+
+# TEMPORARY
+@app.route('/sessionviewer')
+def sessionviewer():
+    return jsonify(cookie_session)
+
+
+@app.route('/category/new', methods=['GET', 'POST'])
+def create_category():
+    # Check login via session email
+    if not g.logged_in:
+        return abort(401)
+
+    if request.method == 'GET':
+        return render_template('create_category.html')
+    elif request.method == 'POST':
+        category_name = request.form['name']
+        new_category = Category(name=category_name, timestamp=int_time_now(),
+                                user_id=g.user_id)
+
+        session.add(new_category)
+        session.commit()
+        flash('Category "%s" created' % category_name)
+
+    return redirect(url_for('index'))
+
+
+@app.route('/category/<int:category_id>')
+def show_category(category_id):
+    try:
+        category = session.query(Category).filter_by(id=category_id).one()
+    except:
+        return abort(404)
+
+    items = session.query(Item).filter_by(category=category).all()
+    can_edit = g.logged_in and category.user_id == g.user_id
+
+    return render_template('show_category.html', category=category,
+                           can_edit=can_edit, items=items)
+
+
+@app.route('/category/<int:category_id>/edit', methods=['GET', 'POST'])
+def edit_category(category_id):
+    try:
+        category = session.query(Category).filter_by(id=category_id).one()
+    except:
+        return abort(404)
+
+    if (not logged_in) or (category.user_id != g.user_id):
+        return abort(401)
+
+    if request.method == 'GET':
+        return render_template('edit_category.html',
+                               category=category)
+    elif request.method == 'POST':
+        category.name = request.form['name']
+        session.add(category)
+        session.commit()
+        flash('Category "%s" edited' % category.name)
+        return redirect(url_for('index'))
+
+
+@app.route('/category/<int:category_id>/delete', methods=['GET', 'POST'])
+def delete_category(category_id):
+    try:
+        category = session.query(Category).filter_by(id=category_id).one()
+    except:
+        return abort(404)
+
+    if (not logged_in) or (category.user_id != g.user_id):
+        return abort(401)
+
+    if request.method == 'GET':
+        return render_template('confirm_delete_category.html',
+                               category=category)
+
+    elif request.method == 'POST':
+        category_name = category.name
+        session.query(Item).filter_by(category_id=category.id).delete()
+        session.query(Category).filter_by(id=category.id).delete()
+        flash('Category "%s" deleted' % category_name)
+        return redirect(url_for('index'))
+
+
+@app.route('/item/new', methods=['GET', 'POST'])
+def create_item():
+    if not g.logged_in:
+        return abort(401)
+
+    if request.method == 'GET':
+        # PEP8 complains about E712 here but that cannot be avoided due to
+        # the overloaded != operator
+        categories = session.query(Category).all()
+
+        return render_template('create_item.html', categories=categories)
+
+    elif request.method == 'POST':
+        name = request.form['name']
+        description = request.form['description']
+        category_id = int(request.form['category'])
+
+        new_item = Item(name=name, description=description,
+                        category_id=category_id, timestamp=int_time_now(),
+                        user_id=cookie_session['user_id'])
+        session.add(new_item)
+        session.commit()
+        flash('Item "%s" created' % name)
+        return redirect(url_for('index'))
+
+
+@app.route('/item/<int:item_id>')
+def show_item(item_id):
+    try:
+        item = session.query(Item).filter_by(id=item_id).one()
+    except:
+        return abort(404)
+
+    can_edit = g.logged_in and (item.user_id == g.user_id)
+
+    return render_template('show_item.html', item=item, can_edit=can_edit)
+
+
+@app.route('/item/<int:item_id>/edit', methods=['GET', 'POST'])
+def edit_item(item_id):
+    try:
+        item = session.query(Item).filter_by(id=item_id).one()
+    except:
+        return abort(404)
+
+    if (not g.logged_in) or (item.user_id != g.user_id):
+        return abort(401)
+
+    if request.method == 'GET':
+        # PEP8 complains about E712 here but that cannot be avoided due to
+        # the overloaded != operator
+        categories = session.query(Category).all()
+
+        return render_template('edit_item.html', categories=categories,
+                               item=item)
+
+    elif request.method == 'POST':
+        item.name = request.form['name']
+        item.description = request.form['description']
+        item.category_id = int(request.form['category'])
+
+        session.add(item)
+        session.commit()
+        flash('Item "%s" edited' % item.name)
+        return redirect(url_for('show_item', item_id=item.id))
+
+
+@app.route('/item/<int:item_id>/delete', methods=['GET', 'POST'])
+def delete_item(item_id):
+    try:
+        item = session.query(Item).filter_by(id=item_id).one()
+    except:
+        return abort(404)
+
+    if (not logged_in) or (category.user_id != g.user_id):
+        return abort(401)
+
+    if request.method == 'GET':
+        return render_template('confirm_delete_item.html', item=item)
+
+    elif request.method == 'POST':
+        item_name = item.name
+        session.query(Item).filter_by(id=item_id).delete()
+        flash('Item "%s" deleted' % item_name)
+        return redirect(url_for('index'))
 
 
 @app.route('/login')
@@ -151,6 +338,10 @@ def google_login():
         user_id = create_user(data['email'], data['name'], data['picture']).id
     else:
         user_id = user.id
+
+    cookie_session['user_id'] = user_id
+
+    flash('Google login successful')
 
     return get_json_response({'message': 'Google login successful'})
 
@@ -250,6 +441,7 @@ def logout():
             facebook_logout()
             del cookie_session['facebook_id']
         del cookie_session['email']
+        del cookie_session['user_id']
         del cookie_session['provider']
         flash('You have been successfully logged out')
 
@@ -261,7 +453,6 @@ def logout():
 if __name__ == '__main__':
     # Place at end of file
     app.debug = True
-    # cryptographically secure random
-    key = 'v6wQKajGHNkBIbUp8XOCrvbh8eHNaLceqIA3hXpgM7OHMgLBvPaVRcrIqyOutK_B'
+    key = 'Replace this key with a better one in production'
     app.secret_key = key
     app.run(host="0.0.0.0", port=5000)

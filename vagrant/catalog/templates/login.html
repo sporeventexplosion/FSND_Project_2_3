@@ -25,8 +25,9 @@
 
     var facebook_login = function(){
         var accessToken = FB.getAuthResponse().accessToken;
-        console.log(accessToken);
         FB.api('/me', function(response){
+            $('.login-container').hide(); // Hide signin buttons
+            $('#title').text('Logging in...');
             $.ajax({
                 'type': 'POST',
                 'url': '/auth/fbconnect?state={{state}}',
@@ -49,8 +50,8 @@
     // Google login
     var google_login_callback = function(authResult){
         if (authResult.code){
-            $('#google-signin-button').hide();
-
+            $('.login-container').hide(); // Hide signin buttons
+            $('#title').text('Logging in...');
             $.ajax({
                 'type': 'POST',
                 'url': '/auth/gconnect?state={{state}}',
@@ -77,13 +78,13 @@
 {% block content %}
 <div class="row">
     <div class="col-xs-12">
-        <h1>Log in</h1>
+        <h1 id="title">Log in</h1>
     </div>
 </div>
-<div class="row">
+<div class="row login-container">
     <div class="col-xs-12 col-sm-6">
         Log in with Google
-        <div>
+        <div class="signin">
             <span class="g-signin"
                 data-scope="openid email"
                 data-clientid="{{google_client_id}}"
@@ -95,7 +96,7 @@
     </div>
     <div class="col-xs-12 col-sm-6">
         Log in with Facebook
-        <div>
+        <div class="signin">
             <fb:login-button scope="public_profile,email" onlogin="facebook_login();">
                 <a href="javascript:facebook_login()">Sign in</a>
             </fb:login-button>

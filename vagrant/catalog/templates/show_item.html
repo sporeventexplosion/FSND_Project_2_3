@@ -1,0 +1,34 @@
+{% extends "root.html" %}
+
+{% block title %}Item "{{ item.name }}"{% endblock %}
+
+{% block content %}
+
+{% include "top_bar.html" %}
+<div class="row">
+    <div class="col-xs-12">
+        <h2>Item: {{ item.name }}</h2>
+    </div>
+</div>
+<div class="row">
+    <div class="col-xs-12">
+        <p>
+            <strong>Category: </strong>{{ item.category.name }}
+        </p>
+        <p>
+            <strong>Created By: </strong>{{ item.user.name }}
+        </p>
+        <p>
+            <strong>Description: </strong>{{ item.description }}
+        </p>
+    </div>
+</div>
+{% if can_edit and not item.deleted %}
+<div class="row">
+    <div class="col-xs-12">
+        <a href="{{ url_for('edit_item', item_id=item.id) }}" class="btn btn-default">Edit item</a>
+        <a href="{{ url_for('delete_item', item_id=item.id) }}" class="btn btn-danger">Delete item</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

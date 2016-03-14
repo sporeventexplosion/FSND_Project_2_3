@@ -1,0 +1,26 @@
+{% extends "root.html" %}
+
+{% block title %}New Category{% endblock %}
+
+{% block content %}
+
+{% include "top_bar.html" %}
+<div class="row">
+    <div class="col-xs-12">
+        <h2>New Category</h2>
+    </div>
+</div>
+<div class="row">
+    <div class="col-xs-12">
+        <form action="{{ url_for('create_category') }}" method="POST">
+            <div class="form-group">
+                <label for="form_name">Category Name</label>
+                <input name="name" type="text" class="form-control" id="form_name" placeholder="Name of new category" required>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Submit" class="btn btn-primary">
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
