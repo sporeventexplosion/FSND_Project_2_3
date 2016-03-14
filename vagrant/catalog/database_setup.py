@@ -18,9 +18,19 @@ class User(Base):
 class Category(Base):
     __tablename__ = "category"
 
+    @property
+    def serialize(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'timestamp': self.timestamp
+        }
+
+
     id = Column(Integer, primary_key=True)
     name = Column(String(200), nullable=False)
     # Use an int for timestamp to work around some SQLite limitations
+    # Not used at the moment
     timestamp = Column(Integer, nullable=False)
     user_id = Column(Integer, ForeignKey("user.id"))
     user = relationship(User)
@@ -28,6 +38,16 @@ class Category(Base):
 
 class Item(Base):
     __tablename__ = "item"
+
+    @property
+    def serialize(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'timestamp': self.timestamp,
+            'category_id': self.category_id
+        }
 
     id = Column(Integer, primary_key=True)
     name = Column(String(250), nullable=False)

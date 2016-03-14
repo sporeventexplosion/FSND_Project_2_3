@@ -13,8 +13,7 @@ import httplib2
 import random
 import string
 import json
-
-from time import time
+import time
 
 from database_setup import Base, User, Category, Item
 
@@ -95,10 +94,34 @@ def index():
                            items=latest_items)
 
 
-# TEMPORARY
-@app.route('/sessionviewer')
-def sessionviewer():
-    return jsonify(cookie_session)
+@app.route('/api/categories.json')
+def catalog_json():
+    categories = session.query(Category).all()
+    return jsonify(categories=[x.serialize for x in categories])
+
+@app.route('/api/category/<int:category_id>.json')
+def category_json(category_id):
+    try:
+        category = session.query(Category).filter_by(id=category_id).one()
+    except:
+        return abort(404)
+
+    items = session.query(Item).filter_by(category_id=category_id).all()
+
+    items_dict = [item.serialize for item in items]
+    category_dict = category.serialize
+    category_dict['items'] = items_dict
+
+    return jsonify(category=category_dict)
+
+@app.route('/api/item/<int:item_id>.json')
+def item_json(item_id):
+    try:
+        item = session.query(Item).filter_by(id=item_id).one()
+    except:
+        return abort(404)
+
+    return jsonify(item=item.serialize)
 
 
 @app.route('/category/new', methods=['GET', 'POST'])
@@ -142,7 +165,7 @@ def edit_category(category_id):
     except:
         return abort(404)
 
-    if (not logged_in) or (category.user_id != g.user_id):
+    if (not g.logged_in) or (category.user_id != g.user_id):
         return abort(401)
 
     if request.method == 'GET':
@@ -163,7 +186,7 @@ def delete_category(category_id):
     except:
         return abort(404)
 
-    if (not logged_in) or (category.user_id != g.user_id):
+    if (not g.logged_in) or (category.user_id != g.user_id):
         return abort(401)
 
     if request.method == 'GET':
@@ -174,6 +197,7 @@ def delete_category(category_id):
         category_name = category.name
         session.query(Item).filter_by(category_id=category.id).delete()
         session.query(Category).filter_by(id=category.id).delete()
+        session.commit()
         flash('Category "%s" deleted' % category_name)
         return redirect(url_for('index'))
 
@@ -252,7 +276,7 @@ def delete_item(item_id):
     except:
         return abort(404)
 
-    if (not logged_in) or (category.user_id != g.user_id):
+    if (not g.logged_in) or (item.user_id != g.user_id):
         return abort(401)
 
     if request.method == 'GET':
@@ -261,6 +285,7 @@ def delete_item(item_id):
     elif request.method == 'POST':
         item_name = item.name
         session.query(Item).filter_by(id=item_id).delete()
+        session.commit()
         flash('Item "%s" deleted' % item_name)
         return redirect(url_for('index'))
 
