@@ -26,7 +26,6 @@ class Category(Base):
             'timestamp': self.timestamp
         }
 
-
     id = Column(Integer, primary_key=True)
     name = Column(String(200), nullable=False)
     # Use an int for timestamp to work around some SQLite limitations

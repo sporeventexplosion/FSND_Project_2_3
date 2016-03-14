@@ -81,7 +81,7 @@ FACEBOOK_APP_DATA = read_json('facebook_client_secrets.json')
 # Simplify repetitive tasks
 @app.before_request
 def before_request():
-    g.logged_in = cookie_session.get('email') != None
+    g.logged_in = cookie_session.get('email') is not None
     g.user_id = cookie_session.get('user_id')
 
 
@@ -99,6 +99,7 @@ def catalog_json():
     categories = session.query(Category).all()
     return jsonify(categories=[x.serialize for x in categories])
 
+
 @app.route('/api/category/<int:category_id>.json')
 def category_json(category_id):
     try:
@@ -113,6 +114,7 @@ def category_json(category_id):
     category_dict['items'] = items_dict
 
     return jsonify(category=category_dict)
+
 
 @app.route('/api/item/<int:item_id>.json')
 def item_json(item_id):
@@ -208,8 +210,6 @@ def create_item():
         return abort(401)
 
     if request.method == 'GET':
-        # PEP8 complains about E712 here but that cannot be avoided due to
-        # the overloaded != operator
         categories = session.query(Category).all()
 
         return render_template('create_item.html', categories=categories)
