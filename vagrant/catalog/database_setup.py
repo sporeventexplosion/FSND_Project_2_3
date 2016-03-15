@@ -7,6 +7,9 @@ Base = declarative_base()
 
 
 class User(Base):
+
+    """ A user entry used to identify users of the app """
+
     __tablename__ = "user"
 
     id = Column(Integer, primary_key=True)
@@ -16,6 +19,9 @@ class User(Base):
 
 
 class Category(Base):
+
+    """ A category in the app belonging to a give user """
+
     __tablename__ = "category"
 
     @property
@@ -36,6 +42,9 @@ class Category(Base):
 
 
 class Item(Base):
+
+    """ An item in the app in a given category and belonging to a user """
+
     __tablename__ = "item"
 
     @property

@@ -17,8 +17,10 @@ import time
 
 from database_setup import Base, User, Category, Item
 
+# Initialize the app object
 app = Flask(__name__)
 
+# Connect to the database and obtain a session object
 engine = create_engine('sqlite:///catalog.db')
 Base.metadata.bind = engine
 
@@ -27,18 +29,22 @@ session = DBSession()
 
 
 def int_time_now():
+    """ Returns the time in seconds since the Unix epoch """
     return int(time.time())
 
 
 def get_error_response(error, status):
+    """ Returns a JSON response containing an error string and status """
     return (jsonify({'error': error}), status)
 
 
 def http_request(url, method='GET'):
+    """ Sends an HTTP request to url using the specified HTTP method """
     return httplib2.Http().request(url, method)
 
 
 def read_json(filename):
+    """ Reads JSON from a file """
     f = open(filename)
     result = json.loads(f.read())
     f.close()
@@ -47,6 +53,7 @@ def read_json(filename):
 
 # DB interaction tools
 def get_user_by_email(email):
+    """ Gets a user object by the unique email key """
     try:
         user = session.query(User).filter_by(email=email).one()
         return user
@@ -56,43 +63,40 @@ def get_user_by_email(email):
 
 
 def get_user_by_id(id):
+    """ Get user by the ID in the database """
     return session.query(User).filter_by(id=id).one()
 
 
 def create_user(email, name, picture):
+    """ Creates a new user """
     new_user = User(email=email, name=name, picture=picture)
     session.add(new_user)
     session.commit()
     return new_user
 
 
+# Used in the OAuth processes
 GOOGLE_CLIENT_ID = read_json('google_client_secrets.json')['web']['client_id']
 FACEBOOK_APP_DATA = read_json('facebook_client_secrets.json')
 
 
 @app.before_request
 def before_request():
+    """ Sets logged_in and user_id onto Flask's g object for convenience """
     g.logged_in = cookie_session.get('email') is not None
     g.user_id = cookie_session.get('user_id')
 
 
-@app.route('/category/')
-@app.route('/')
-def index():
-    categories = session.query(Category).order_by(desc(Category.id)).all()
-    latest_items = session.query(Item).order_by(desc(Item.id)).limit(10).all()
-    return render_template('categories.html', categories=categories,
-                           items=latest_items)
-
-
 @app.route('/api/categories.json')
 def catalog_json():
+    """ JSON API for accessing all categories """
     categories = session.query(Category).all()
     return jsonify(categories=[x.serialize for x in categories])
 
 
 @app.route('/api/category/<int:category_id>.json')
 def category_json(category_id):
+    """ JSON API for accessing a specific category and its items """
     try:
         category = session.query(Category).filter_by(id=category_id).one()
     except:
@@ -109,6 +113,7 @@ def category_json(category_id):
 
 @app.route('/api/item/<int:item_id>.json')
 def item_json(item_id):
+    """ JSON API for accessing a specific item """
     try:
         item = session.query(Item).filter_by(id=item_id).one()
     except:
@@ -117,8 +122,20 @@ def item_json(item_id):
     return jsonify(item=item.serialize)
 
 
+@app.route('/category/')
+@app.route('/')
+def index():
+    """ Returns home page with category list and 10 newest items """
+
+    categories = session.query(Category).order_by(desc(Category.id)).all()
+    latest_items = session.query(Item).order_by(desc(Item.id)).limit(10).all()
+    return render_template('categories.html', categories=categories,
+                           items=latest_items)
+
+
 @app.route('/category/new', methods=['GET', 'POST'])
 def create_category():
+    """ Creates a category for a given user if logged in """
     # Check login via session email
     if not g.logged_in:
         return abort(401)
@@ -139,6 +156,10 @@ def create_category():
 
 @app.route('/category/<int:category_id>')
 def show_category(category_id):
+    """
+    Shows a category and its items. Options for editing and deleting are shown
+    if the user is logged in and matches the user id of a given category.
+    """
     try:
         category = session.query(Category).filter_by(id=category_id).one()
     except:
@@ -153,6 +174,10 @@ def show_category(category_id):
 
 @app.route('/category/<int:category_id>/edit', methods=['GET', 'POST'])
 def edit_category(category_id):
+    """
+    Enables editing of a category if the user is logged in and matches the user
+    id of a given category.
+    """
     try:
         category = session.query(Category).filter_by(id=category_id).one()
     except:
@@ -174,6 +199,10 @@ def edit_category(category_id):
 
 @app.route('/category/<int:category_id>/delete', methods=['GET', 'POST'])
 def delete_category(category_id):
+    """
+    Deletes a category with confirmation message if if the user is logged in
+    and matches the user id of a given category.
+    """
     try:
         category = session.query(Category).filter_by(id=category_id).one()
     except:
@@ -197,6 +226,8 @@ def delete_category(category_id):
 
 @app.route('/item/new', methods=['GET', 'POST'])
 def create_item():
+    """ Creates an item for a given in a given category user if logged in """
+
     if not g.logged_in:
         return abort(401)
 
@@ -221,6 +252,10 @@ def create_item():
 
 @app.route('/item/<int:item_id>')
 def show_item(item_id):
+    """
+    Shows an item with its information. Options for editing and deleting are
+    shown if the user is logged in and matches the user id of a given category.
+    """
     try:
         item = session.query(Item).filter_by(id=item_id).one()
     except:
@@ -233,6 +268,10 @@ def show_item(item_id):
 
 @app.route('/item/<int:item_id>/edit', methods=['GET', 'POST'])
 def edit_item(item_id):
+    """
+    Enables editing of an item and changing category if the user is logged in
+    and matches the user id of a given category.
+    """
     try:
         item = session.query(Item).filter_by(id=item_id).one()
     except:
@@ -262,6 +301,10 @@ def edit_item(item_id):
 
 @app.route('/item/<int:item_id>/delete', methods=['GET', 'POST'])
 def delete_item(item_id):
+    """
+    Deletes a category with confirmation message if if the user is logged in
+    and matches the user id of a given category.
+    """
     try:
         item = session.query(Item).filter_by(id=item_id).one()
     except:
@@ -283,6 +326,7 @@ def delete_item(item_id):
 
 @app.route('/login')
 def login():
+    """ Sets a state and presents Google and Facebook login options """
     state = ''.join(random.choice(string.ascii_uppercase + string.digits)
                     for x in xrange(32))
 
@@ -294,6 +338,7 @@ def login():
 
 @app.route('/auth/gconnect', methods=['POST'])
 def google_login():
+    """ Handler used by ajax call to initiate Google OAuth login process """
     # Validate state token
     if request.args.get('state') != cookie_session['state']:
         return get_error_response('Invalid state parameter', 401)
@@ -364,6 +409,7 @@ def google_login():
 
 @app.route('/auth/fbconnect', methods=['POST'])
 def facebook_login():
+    """ Handler used by ajax call to initiate Facebook OAuth login process """
     if request.args.get('state') != cookie_session['state']:
         return get_error_response('Invalid state parameter', 401)
 
@@ -414,6 +460,7 @@ def facebook_login():
 
 
 def google_logout():
+    """ Log out from a Google third-party login """
     access_token = cookie_session.get('access_token')
     if access_token is None:
         # User is not logged in
@@ -434,6 +481,7 @@ def google_logout():
 
 
 def facebook_logout():
+    """ Log out from a Facebook third-party login """
     facebook_id = cookie_session.get('facebook_id')
     access_token = cookie_session.get('access_token')
 
@@ -445,6 +493,10 @@ def facebook_logout():
 
 @app.route('/logout')
 def logout():
+    """
+    A generic logout url that detects the third-party OAuth provider and calls
+    respective logout functions
+    """
     if 'provider' in cookie_session:
         if cookie_session['provider'] == 'google':
             logout_result = google_logout()
@@ -465,9 +517,11 @@ def logout():
         flash('You were not logged in')
     return redirect(url_for('index'))
 
-
+# Place at end of file
 if __name__ == '__main__':
-    # Place at end of file
+    # Start Flask server
+
+    # Set to False in production
     app.debug = True
     key = 'Replace this key with a better one in production'
     app.secret_key = key
