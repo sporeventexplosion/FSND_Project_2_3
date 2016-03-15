@@ -26,20 +26,12 @@ DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
 
-def get_json_response(content, status=200):
-    response = make_response(json.dumps(content), status)
-    response.headers['Content-Type'] = 'application/json'
-    return response
-
-
 def int_time_now():
     return int(time.time())
 
 
-# A function that "packages" errors into a dictionary for easier client
-# handling
 def get_error_response(error, status):
-    return get_json_response({'error': error}, status)
+    return (jsonify({'error': error}), status)
 
 
 def http_request(url, method='GET'):
@@ -78,7 +70,6 @@ GOOGLE_CLIENT_ID = read_json('google_client_secrets.json')['web']['client_id']
 FACEBOOK_APP_DATA = read_json('facebook_client_secrets.json')
 
 
-# Simplify repetitive tasks
 @app.before_request
 def before_request():
     g.logged_in = cookie_session.get('email') is not None
