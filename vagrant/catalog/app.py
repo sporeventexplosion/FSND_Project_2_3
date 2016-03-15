@@ -33,6 +33,30 @@ def int_time_now():
     return int(time.time())
 
 
+def parse_query_string(url):
+    """Returns a dictionary of query string parameters"""
+    result = {}
+
+    query_start = url.find('?')
+    if query_start == -1:
+        return result
+
+    query_string = url[url.find('?') + 1:]
+    parameters = query_string.split('&')
+    print parameters
+
+
+    for parameter in parameters:
+        parameter_parts = parameter.split('=', 1)
+        if len(parameter_parts) != 2:
+            continue
+
+        result[parameter_parts[0]] = parameter_parts[1]
+
+    return result
+
+
+
 def get_error_response(error, status):
     """ Returns a JSON response containing an error string and status """
     return (jsonify({'error': error}), status)
