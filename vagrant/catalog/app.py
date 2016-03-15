@@ -377,7 +377,7 @@ def google_login():
     stored_access_token = cookie_session.get('access_token')
     stored_gplus_id = cookie_session.get('gplus_id')
     if stored_access_token is not None and gplus_id == stored_gplus_id:
-        return get_json_response({'message': 'Already connected'}, 200)
+        return jsonify({'message': 'Already connected'})
 
     # Store access_token and gplus_id in session cookie
     cookie_session['access_token'] = access_token
@@ -404,7 +404,7 @@ def google_login():
 
     flash('Google login successful')
 
-    return get_json_response({'message': 'Google login successful'})
+    return jsonify({'message': 'Google login successful'})
 
 
 @app.route('/auth/fbconnect', methods=['POST'])
@@ -456,7 +456,7 @@ def facebook_login():
     cookie_session['email'] = email
 
     flash('Facebook login successful')
-    return get_json_response({'message': 'Facebook login successful'})
+    return jsonify({'message': 'Facebook login successful'})
 
 
 def google_logout():
