@@ -23,9 +23,11 @@ A simple system for recording results for a tournament using the Swisis system. 
 
 ### How to Run
 
-1. Once connected to the VM as explained above, execute `cd /vagrant/tournament` in the SSH terminal.
+1. Clone and connect to the VM as explained above.
 
-2. Here, you can run `python` and import the tournament file for use, or you can run `python tournament_test.py` to validate that the functions in tournament.py are working properly.
+2. Execute `cd /vagrant/tournament` in the SSH terminal.
+
+3. Here, you can run `python` and import the tournament file for use, or you can run `python tournament_test.py` to validate that the functions in tournament.py are working properly.
 
 ## Full Stack Nanodegree Project 3
 Catalog Web App
@@ -34,8 +36,10 @@ A web application for creating, reading, updating and deleting items organized w
 
 ### How to Run
 
-1. Once connected to the VM as explained above, execute `cd /vagrant/catalog` in the SSH terminal.
+1. Clone and connect to the VM as explained above.
 
-2. Run `python database_setup.py` to set up the SQLite database used by this website.
+2. Execute `cd /vagrant/catalog` in the SSH terminal.
 
-3. Run `python app.py` to start the web server. Port 5000 will be forwarded to your host machine and you can access the site on `http://localhost:5000/` in a browser.
+3. Run `python database_setup.py` to set up the SQLite database used by this website.
+
+4. Run `python app.py` to start the web server. Port 5000 will be forwarded to your host machine and you can access the site on `http://localhost:5000/` in a browser.
