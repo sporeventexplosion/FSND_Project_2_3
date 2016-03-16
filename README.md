@@ -1,10 +1,6 @@
 # Fullstack Nanodegree Virtual Machine environment
 
-### Preparing the VM
-
-A simple system for recording results for a tournament using the Swisis system. To run locally, follow the instructions below.
-
-### How to Run
+## Prepare VM environment
 
 1. Ensure VirtualBox and Vagrant are installed.
 
@@ -19,7 +15,7 @@ A simple system for recording results for a tournament using the Swisis system. 
 ## Full Stack Nanodegree Project 2
 Tournament Results Database and Python module
 
-A simple system for recording results for a tournament using the Swisis system. To run locally, follow the instructions below.
+A simple system for recording results for a tournament using the Swiss system. To run locally, follow the instructions below.
 
 ### How to Run
 
