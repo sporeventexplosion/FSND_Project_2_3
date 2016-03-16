@@ -9,7 +9,6 @@ from sqlalchemy import create_engine, desc
 from sqlalchemy.orm import sessionmaker
 
 import requests
-import httplib2
 import random
 import string
 import json
@@ -33,18 +32,16 @@ def int_time_now():
     return int(time.time())
 
 
-def parse_query_string(url):
-    """Returns a dictionary of query string parameters"""
-    result = {}
+def parse_query_string(query_string):
+    """
+    Returns a dictionary of query string parameters
 
-    query_start = url.find('?')
-    if query_start == -1:
-        return result
+    Used for parsing results from certain Facebook APIs that return results in
+    a query string format.
+    """
 
-    query_string = url[url.find('?') + 1:]
     parameters = query_string.split('&')
-    print parameters
-
+    result = {}
 
     for parameter in parameters:
         parameter_parts = parameter.split('=', 1)
@@ -56,15 +53,9 @@ def parse_query_string(url):
     return result
 
 
-
-def get_error_response(error, status):
+def error_response(error, status):
     """ Returns a JSON response containing an error string and status """
     return (jsonify({'error': error}), status)
-
-
-def http_request(url, method='GET'):
-    """ Sends an HTTP request to url using the specified HTTP method """
-    return httplib2.Http().request(url, method)
 
 
 def read_json(filename):
@@ -365,7 +356,7 @@ def google_login():
     """ Handler used by ajax call to initiate Google OAuth login process """
     # Validate state token
     if request.args.get('state') != cookie_session['state']:
-        return get_error_response('Invalid state parameter', 401)
+        return error_response('Invalid state parameter', 401)
 
     auth_code = request.data
 
@@ -375,28 +366,24 @@ def google_login():
         oauth_flow.redirect_uri = 'postmessage'
         credentials = oauth_flow.step2_exchange(auth_code)
     except FlowExchangeError:
-        return get_error_response('Failed to upgrade authorization code', 401)
+        return error_response('Failed to upgrade authorization code', 401)
 
     access_token = credentials.access_token
-    url = ('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=%s'
-           % access_token)
 
-    # Get response string, the second element of return tuple
-    result = json.loads(http_request(url)[1])
+    result = requests.get('https://www.googleapis.com/oauth2/v1/tokeninfo',
+                          params=dict(access_token=access_token)).json()
 
     if result.get('error') is not None:
-        return get_error_response(result['error'], 500)
+        return error_response(result['error'], 500)
 
     # Verify access token is used for intended user
     gplus_id = credentials.id_token['sub']
 
     if result['user_id'] != gplus_id:
-        return get_error_response('Token\'s user ID does not match given ID',
-                                  401)
+        return error_response('Token\'s user ID does not match given ID', 401)
 
     if result['issued_to'] != GOOGLE_CLIENT_ID:
-        return get_error_response('Token\'s client ID does not match app\'s',
-                                  401)
+        return error_response('Token\'s client ID does not match app\'s', 401)
 
     stored_access_token = cookie_session.get('access_token')
     stored_gplus_id = cookie_session.get('gplus_id')
@@ -434,39 +421,39 @@ def google_login():
 @app.route('/auth/fbconnect', methods=['POST'])
 def facebook_login():
     """ Handler used by ajax call to initiate Facebook OAuth login process """
+
     if request.args.get('state') != cookie_session['state']:
-        return get_error_response('Invalid state parameter', 401)
+        return error_response('Invalid state parameter', 401)
 
     access_token = request.data
     app_id = FACEBOOK_APP_DATA['web']['app_id']
     app_secret = FACEBOOK_APP_DATA['web']['app_secret']
 
-    url = ('https://graph.facebook.com/oauth/access_token?grant_type='
-           'fb_exchange_token&client_id=%s&client_secret=%s'
-           '&fb_exchange_token=%s') % (app_id, app_secret, access_token)
+    result = requests.get('https://graph.facebook.com/oauth/access_token',
+                          params=dict(grant_type='fb_exchange_token',
+                                      client_id=app_id,
+                                      client_secret=app_secret,
+                                      fb_exchange_token=access_token)).text
 
-    result = http_request(url)[1]
+    token = parse_query_string(result)['access_token']
 
-    userinfo_url = 'https://graph.facebook.com/v2.5/me'
-    # strip expire tag from access token
-    token = result.split("&")[0]
+    data = requests.get('https://graph.facebook.com/v2.5/me?',
+                        params=dict(access_token=token,
+                                    fields='name,id,email')).json()
 
-    url = 'https://graph.facebook.com/v2.5/me?%s&fields=name,id,email' % token
-    result = http_request(url)[1]
-
-    data = json.loads(result)
     cookie_session['provider'] = 'facebook'
 
     username = data['name']
     email = data['email']
 
     cookie_session['facebook_id'] = data['id']
-
-    cookie_session['access_token'] = token.split('=')[1]
+    cookie_session['access_token'] = token
 
     url = ('https://graph.facebook.com/v2.5/me/picture?%s&redirect=0'
            '&height=200&width=200') % token
-    data = json.loads(http_request(url)[1])
+    data = requests.get('https://graph.facebook.com/v2.5/me/picture',
+                        params=dict(redirect=0, height=200, width=200,
+                                    access_token=token)).json()
 
     picture = data['data']['url']
 
@@ -490,18 +477,17 @@ def google_logout():
         # User is not logged in
         return
 
-    url = ('https://accounts.google.com/o/oauth2/'
-           'revoke?token=%s') % access_token
-    result = http_request(url)
-
     del cookie_session['gplus_id']
     del cookie_session['access_token']
 
+    result = requests.get('https://accounts.google.com/o/oauth2/revoke',
+                          params=dict(token=access_token))
+
     # Invalid token should be ignored since that usually means the user is
     # already logged out
-    if result[0]['status'] != '200' \
+    if result.status_code != 200 \
             and json.loads(result[1])['error'] != 'invalid_token':
-        return get_error_response('Failed to revoke token for user', 400)
+        return error_response('Failed to revoke token for user', 400)
 
 
 def facebook_logout():
@@ -509,10 +495,8 @@ def facebook_logout():
     facebook_id = cookie_session.get('facebook_id')
     access_token = cookie_session.get('access_token')
 
-    url = 'https://graph.facebook.com/%s/permissions?access_token=%s' \
-        % (facebook_id, access_token)
-
-    http_request(url, 'DELETE')
+    requests.delete('https://graph.facebook.com/%s/permissions' % facebook_id,
+                    params=dict(access_token=access_token))
 
 
 @app.route('/logout')
