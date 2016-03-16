@@ -27,7 +27,7 @@ DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
 
-def int_time_now():
+def int_time():
     """ Returns the time in seconds since the Unix epoch """
     return int(time.time())
 
@@ -159,7 +159,7 @@ def create_category():
         return render_template("create_category.html")
     elif request.method == "POST":
         category_name = request.form["name"]
-        new_category = Category(name=category_name, timestamp=int_time_now(),
+        new_category = Category(name=category_name, timestamp=int_time(),
                                 user_id=g.user_id)
 
         session.add(new_category)
@@ -257,7 +257,7 @@ def create_item():
         category_id = int(request.form["category"])
 
         new_item = Item(name=name, description=description,
-                        category_id=category_id, timestamp=int_time_now(),
+                        category_id=category_id, timestamp=int_time(),
                         user_id=cookie_session["user_id"])
         session.add(new_item)
         session.commit()
