@@ -27,9 +27,9 @@ class Category(Base):
     @property
     def serialize(self):
         return {
-            'id': self.id,
-            'name': self.name,
-            'timestamp': self.timestamp
+            "id": self.id,
+            "name": self.name,
+            "timestamp": self.timestamp
         }
 
     id = Column(Integer, primary_key=True)
@@ -50,11 +50,11 @@ class Item(Base):
     @property
     def serialize(self):
         return {
-            'id': self.id,
-            'name': self.name,
-            'description': self.description,
-            'timestamp': self.timestamp,
-            'category_id': self.category_id
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "timestamp": self.timestamp,
+            "category_id": self.category_id
         }
 
     id = Column(Integer, primary_key=True)
