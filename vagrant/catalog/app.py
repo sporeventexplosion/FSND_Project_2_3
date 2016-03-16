@@ -8,6 +8,8 @@ from oauth2client.client import FlowExchangeError
 from sqlalchemy import create_engine, desc
 from sqlalchemy.orm import sessionmaker
 
+from functools import wraps
+
 import requests
 import random
 import string
@@ -51,6 +53,15 @@ def parse_query_string(query_string):
         result[parameter_parts[0]] = parameter_parts[1]
 
     return result
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not g.logged_in:
+            return abort(401)
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 def error_response(error, status):
@@ -149,11 +160,10 @@ def index():
 
 
 @app.route("/category/new", methods=["GET", "POST"])
+@login_required
 def create_category():
     """ Creates a category for a given user if logged in """
     # Check login via session email
-    if not g.logged_in:
-        return abort(401)
 
     if request.method == "GET":
         return render_template("create_category.html")
@@ -188,6 +198,7 @@ def show_category(category_id):
 
 
 @app.route("/category/<int:category_id>/edit", methods=["GET", "POST"])
+@login_required
 def edit_category(category_id):
     """
     Enables editing of a category if the user is logged in and matches the user
@@ -198,7 +209,7 @@ def edit_category(category_id):
     except:
         return abort(404)
 
-    if (not g.logged_in) or (category.user_id != g.user_id):
+    if category.user_id != g.user_id:
         return abort(401)
 
     if request.method == "GET":
@@ -213,6 +224,7 @@ def edit_category(category_id):
 
 
 @app.route("/category/<int:category_id>/delete", methods=["GET", "POST"])
+@login_required
 def delete_category(category_id):
     """
     Deletes a category with confirmation message if if the user is logged in
@@ -223,7 +235,7 @@ def delete_category(category_id):
     except:
         return abort(404)
 
-    if (not g.logged_in) or (category.user_id != g.user_id):
+    if category.user_id != g.user_id:
         return abort(401)
 
     if request.method == "GET":
@@ -240,11 +252,9 @@ def delete_category(category_id):
 
 
 @app.route("/item/new", methods=["GET", "POST"])
+@login_required
 def create_item():
     """ Creates an item for a given in a given category user if logged in """
-
-    if not g.logged_in:
-        return abort(401)
 
     if request.method == "GET":
         categories = session.query(Category).all()
@@ -282,6 +292,7 @@ def show_item(item_id):
 
 
 @app.route("/item/<int:item_id>/edit", methods=["GET", "POST"])
+@login_required
 def edit_item(item_id):
     """
     Enables editing of an item and changing category if the user is logged in
@@ -292,7 +303,7 @@ def edit_item(item_id):
     except:
         return abort(404)
 
-    if (not g.logged_in) or (item.user_id != g.user_id):
+    if item.user_id != g.user_id:
         return abort(401)
 
     if request.method == "GET":
@@ -315,6 +326,7 @@ def edit_item(item_id):
 
 
 @app.route("/item/<int:item_id>/delete", methods=["GET", "POST"])
+@login_required
 def delete_item(item_id):
     """
     Deletes a category with confirmation message if if the user is logged in
@@ -325,7 +337,7 @@ def delete_item(item_id):
     except:
         return abort(404)
 
-    if (not g.logged_in) or (item.user_id != g.user_id):
+    if item.user_id != g.user_id:
         return abort(401)
 
     if request.method == "GET":
